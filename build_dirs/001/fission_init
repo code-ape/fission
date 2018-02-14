@@ -1,0 +1,52 @@
+#!/bin/sh
+
+NAME="fission_init"
+
+info(){
+   echo "[$NAME] $1"
+}
+
+do_cmd(){
+    cmd="$1"
+    info "Running '$1'"
+    eval "$1"
+    PID=$!
+    wait $PID1
+    info "'$1' has exited"
+}
+
+handle_shutdown() {
+    SIGNAL="$1"
+    # create random string of 128 characters
+    RANDOM_DATA="`dd if=/dev/urandom bs=1024 count=1 2> /dev/null | sha512sum | cut -d' ' -f1`"
+    
+    # Use lockless algorithm to ensure shutdown isn't invoked multiple times.
+    #  1. Check if anyone holds lock.
+    if [ "$SHUTDOWN_STARTED" = "" ]; then
+        # 2. Attempt to hold lock without overwriting other holds.
+        SHUTDOWN_STARTED="${SHUTDOWN_STARTED}${RANDOM_DATA}"
+        # 3. Check if we were the first to hold lock.
+        if [ "`echo $SHUTDOWN_STARTED | cut -c1-128`" = "$RANDOM_DATA" ]; then
+            # Do shutdown
+            info "Trapping $SIGNAL signal"
+            do_cmd "/sbin/openrc shutdown"
+            exit 0
+        fi
+    fi
+    info "Shutdown already started by another signal."     
+}
+
+SHUTDOWN_STARTED=""
+
+# Do proper init procedure.
+do_cmd "/sbin/openrc sysinit"
+do_cmd "/sbin/openrc boot"
+do_cmd "/sbin/openrc default"
+
+# perform shutdown for TERM and INT signal
+trap "handle_shutdown TERM" TERM
+trap "handle_shutdown INT" INT
+
+# block forever
+tail -f /dev/null
+

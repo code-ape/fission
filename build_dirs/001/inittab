@@ -1,0 +1,7 @@
+# /etc/inittab
+::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc boot
+::wait:/sbin/openrc default
+
+# Stuff to do before rebooting
+::shutdown:/sbin/openrc shutdown

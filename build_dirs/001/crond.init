@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+
+name="busybox crond"
+command="/usr/sbin/crond"
+command_args="${CRON_OPTS}"
+pidfile="/var/run/crond.pid"
+
+depend() {
+	need localmount
+	use logger
+}
+
+depend() {
+	provide logger
+}
